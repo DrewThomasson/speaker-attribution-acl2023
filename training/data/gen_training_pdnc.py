@@ -6,7 +6,7 @@ import numpy as np
 from collections import Counter, defaultdict
 import random
 
-from transformers import BertTokenizer
+from transformers import AutoTokenizer
 
 from sklearn.model_selection import train_test_split
 
@@ -48,7 +48,7 @@ class Token:
 
 
 
-tokenizer = BertTokenizer.from_pretrained('bert-base-cased', do_lower_case=False, do_basic_tokenize=False)
+tokenizer = AutoTokenizer.from_pretrained('answerdotai/ModernBERT-base', do_lower_case=False, do_basic_tokenize=False)
 tokenizer.add_tokens(["[QUOTE]", "[ALTQUOTE]"], special_tokens=True)
 
 def read_coref(root_path, mappers, novel):

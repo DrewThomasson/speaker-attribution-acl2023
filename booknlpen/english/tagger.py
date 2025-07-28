@@ -1,7 +1,7 @@
 import sys
 import re
 import math
-from transformers import BertTokenizer, BertModel 
+from transformers import AutoTokenizer, AutoModel 
 
 import torch.nn as nn
 import torch.nn.functional as F
@@ -17,19 +17,21 @@ class Tagger(nn.Module):
 		super(Tagger, self).__init__()
 
 		modelName=base_model
+		# Use ModernBERT by default if no model specified
+		if modelName is None:
+			modelName = "answerdotai/ModernBERT-base"
+		
 		modelName=re.sub("^entities_", "", modelName)
-		modelName=re.sub("-v\d.*$", "", modelName)
-		matcher=re.search(".*-(\d+)_H-(\d+)_A-.*", modelName)
-		bert_dim=0
-		modelSize=0
-		self.num_layers=0
-		if matcher is not None:
-			bert_dim=int(matcher.group(2))
-			self.num_layers=min(4, int(matcher.group(1)))
-
-			modelSize=self.num_layers*bert_dim
-
-		assert bert_dim != 0
+		modelName=re.sub(r"-v\d.*$", "", modelName)
+		
+		# ModernBERT model dimensions
+		if "large" in modelName.lower():
+			bert_dim = 1024
+		else:
+			bert_dim = 768  # ModernBERT-base default
+		
+		self.num_layers = 4  # Default number of layers to use
+		modelSize = self.num_layers * bert_dim
 		
 		self.tagset=tagset
 		self.tagset_flat=tagset_flat
@@ -55,8 +57,8 @@ class Tagger(nn.Module):
 
 		self.num_labels_flat=len(tagset_flat)
 
-		self.tokenizer = BertTokenizer.from_pretrained(modelName, do_lower_case=False, do_basic_tokenize=False)
-		self.bert = BertModel.from_pretrained(modelName)
+		self.tokenizer = AutoTokenizer.from_pretrained(modelName, do_lower_case=False, do_basic_tokenize=False)
+		self.bert = AutoModel.from_pretrained(modelName)
 
 		self.tokenizer.add_tokens(["[CAP]"], special_tokens=True)
 		self.bert.resize_token_embeddings(len(self.tokenizer))

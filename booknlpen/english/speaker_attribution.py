@@ -3,7 +3,7 @@ import re
 import random
 from random import shuffle
 from math import sqrt, exp, isnan
-from transformers import BertTokenizer, BertModel
+from transformers import AutoTokenizer, AutoModel
 import torch.nn as nn
 import torch
 import numpy as np
@@ -19,35 +19,43 @@ ENDC = '\033[0m'
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-class BERTSpeakerID(nn.Module):
+class ModernBERTSpeakerID(nn.Module):
+	"""
+	Speaker identification model using ModernBERT for encoding quotations and candidate speakers.
+	
+	This model takes as input a text passage containing a quotation and candidate speakers,
+	and predicts which candidate is most likely to be the speaker of the quotation.
+	
+	Args:
+		base_model (str): ModernBERT model name from HuggingFace Hub. 
+		                 Defaults to "answerdotai/ModernBERT-base" if not specified.
+	"""
 
 	def __init__(self, base_model=None):
 		super().__init__()
+		# Use ModernBERT by default if no model specified
+		if base_model is None:
+			base_model = "answerdotai/ModernBERT-base"
+		
 		modelName = base_model
-		# modelName=base_model.split("/")[-1]
-		# modelName=re.sub("(.)*_bert_", "bert_", modelName)
-		# modelName=re.sub("-v\d.*$", "", modelName)
-		#og
-		modelName=re.sub("^speaker_", "", modelName)
-		modelName=re.sub("-v\d.*$", "", modelName)
+		# Clean up any legacy model name patterns for backward compatibility
+		modelName = re.sub("^speaker_", "", modelName)
+		modelName = re.sub(r"-v\d.*$", "", modelName)
 
-		matcher=re.search(".*-(\d+)_H-(\d+)_A-.*", modelName)
-		bert_dim=0
-		modelSize=0
-		self.num_layers=0
-		if matcher is not None:
-			bert_dim=int(matcher.group(2))
-			self.num_layers=min(4, int(matcher.group(1)))
+		# ModernBERT model dimensions
+		# ModernBERT-base: 768 hidden size, ModernBERT-large: 1024 hidden size
+		if "large" in modelName.lower():
+			bert_dim = 1024
+		else:
+			bert_dim = 768  # ModernBERT-base default
+		
+		self.num_layers = 4  # Default number of layers to use
+		modelSize = self.num_layers * bert_dim
 
-			modelSize=self.num_layers*bert_dim
-
-		assert bert_dim != 0
-
-		# tokPath = base_model
-
-		self.tokenizer = BertTokenizer.from_pretrained(modelName, do_lower_case=False, do_basic_tokenize=False)
+		# Initialize ModernBERT tokenizer and model
+		self.tokenizer = AutoTokenizer.from_pretrained(modelName, do_lower_case=False, do_basic_tokenize=False)
 		self.tokenizer.add_tokens(["[QUOTE]", "[ALTQUOTE]", "[PAR]"], special_tokens=True)
-		self.bert = BertModel.from_pretrained(modelName)
+		self.bert = AutoModel.from_pretrained(modelName)
 		
 		self.bert.resize_token_embeddings(len(self.tokenizer))
 			
@@ -238,6 +246,8 @@ class BERTSpeakerID(nn.Module):
 		return F, cor/tot
 
 
+# Backward compatibility alias
+BERTSpeakerID = ModernBERTSpeakerID
 
 
 

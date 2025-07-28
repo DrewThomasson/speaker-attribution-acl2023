@@ -4,8 +4,7 @@ from collections import Counter
 import sys
 import argparse
 
-from transformers import BertModel
-from transformers import BertTokenizer
+from transformers import AutoModel, AutoTokenizer
 
 import torch
 from torch import nn
@@ -34,27 +33,26 @@ class BERTCorefTagger(nn.Module):
 	def __init__(self, gender_cats, freeze_bert=False, base_model=None, pronominalCorefOnly=True):
 		super(BERTCorefTagger, self).__init__()
 
-		modelName=base_model
+		# Use ModernBERT by default if no model specified
+		if modelName is None:
+			modelName = "answerdotai/ModernBERT-base"
+		
 		modelName=re.sub("^coref_", "", modelName)
-		modelName=re.sub("-v\d.*$", "", modelName)
+		modelName=re.sub(r"-v\d.*$", "", modelName)
 
-		matcher=re.search(".*-(\d+)_H-(\d+)_A-.*", modelName)
-		bert_dim=0
-		modelSize=0
-
-		self.num_layers=0
-		if matcher is not None:
-			self.num_layers=min(4, int(matcher.group(1)))
-			bert_dim=int(matcher.group(2))
-
-			modelSize=self.num_layers*bert_dim
-
-		assert bert_dim != 0
+		# ModernBERT model dimensions
+		if "large" in modelName.lower():
+			bert_dim = 1024
+		else:
+			bert_dim = 768  # ModernBERT-base default
+		
+		self.num_layers = 4  # Default number of layers to use
+		modelSize = self.num_layers * bert_dim
 
 		self.pronominalCorefOnly=pronominalCorefOnly
 
-		self.tokenizer = BertTokenizer.from_pretrained(modelName, do_lower_case=False, do_basic_tokenize=False)
-		self.bert = BertModel.from_pretrained(modelName)
+		self.tokenizer = AutoTokenizer.from_pretrained(modelName, do_lower_case=False, do_basic_tokenize=False)
+		self.bert = AutoModel.from_pretrained(modelName)
 
 		self.tokenizer.add_tokens(["[CAP]"], special_tokens=True)
 		self.bert.resize_token_embeddings(len(self.tokenizer))

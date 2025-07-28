@@ -143,7 +143,7 @@ if __name__ == "__main__":
 	parser.add_argument('--trainData', help='Filename containing training data', required=False)
 	parser.add_argument('--devData', help='Filename containing dev data', required=False)
 	parser.add_argument('--testData', help='Filename containing test data', required=False)
-	parser.add_argument('--base_model', help='Base BERT model', required=False)
+	parser.add_argument('--base_model', help='Base ModernBERT model (default: answerdotai/ModernBERT-base)', required=False, default='answerdotai/ModernBERT-base')
 	parser.add_argument('--savePath', help='Folder to save outputs', required=False)
 
 	args = vars(parser.parse_args())

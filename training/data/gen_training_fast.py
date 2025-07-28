@@ -5,7 +5,7 @@ import copy
 import numpy as np
 import json
 
-from transformers import BertTokenizer
+from transformers import AutoTokenizer
 
 class Token:
 
@@ -27,7 +27,7 @@ class Token:
 
 
 
-tokenizer = BertTokenizer.from_pretrained('bert-base-cased', do_lower_case=False, do_basic_tokenize=False)
+tokenizer = AutoTokenizer.from_pretrained('answerdotai/ModernBERT-base', do_lower_case=False, do_basic_tokenize=False)
 tokenizer.add_tokens(["[QUOTE]", "[ALTQUOTE]"], special_tokens=True)
 
 def read_toks(filename):
