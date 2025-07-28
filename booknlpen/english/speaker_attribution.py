@@ -175,7 +175,7 @@ class ModernBERTSpeakerID(nn.Module):
 
 	def forward(self, batch_x, batch_m): 
 		
-		_, pooled_outputs, sequence_outputs = self.bert(batch_x["toks"], token_type_ids=None, attention_mask=batch_x["mask"], output_hidden_states=True, return_dict=False)
+		_, pooled_outputs, sequence_outputs = self.bert(batch_x["toks"], attention_mask=batch_x["mask"], output_hidden_states=True, return_dict=False)
 
 		out=sequence_outputs[-1]
 		batch_size, _, bert_size=out.shape

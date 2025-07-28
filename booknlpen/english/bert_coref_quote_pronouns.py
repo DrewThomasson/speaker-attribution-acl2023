@@ -122,7 +122,7 @@ class BERTCorefTagger(nn.Module):
 		# index specifies the location of the mentions in each sentence (which vary due to padding)
 		index=index.to(device)
 
-		_, pooled_outputs, sequence_outputs = self.bert(input_ids, token_type_ids=None, attention_mask=attention_mask, output_hidden_states=True, return_dict=False)
+		_, pooled_outputs, sequence_outputs = self.bert(input_ids, attention_mask=attention_mask, output_hidden_states=True, return_dict=False)
 
 		all_layers = sequence_outputs[-1]
 		embeds=torch.matmul(transforms,all_layers)
