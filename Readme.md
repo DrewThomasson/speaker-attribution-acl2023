@@ -2,6 +2,8 @@
 
 This repository contains code for the experiments described in the paper [`Improving Automatic Quotation Attribution in Literary Novels`](https://aclanthology.org/2023.acl-short.64/) (ACL 2023 short paper).
 
+**🔥 NEW: This repository has been updated to use ModernBERT instead of BERT for improved performance and efficiency. See [MODERNBERT_USAGE.md](MODERNBERT_USAGE.md) for details.**
+
 Citation:
 ```
 @inproceedings{vishnubhotla2023improving,
@@ -23,6 +25,8 @@ Source data for the PDNC dataset in `data/pdnc_source`. This data is the startin
 We also split the set of annotated quotations in PDNC into train, dev, and test subsets for training and evaluating the speaker identification model (`data/train_splits`). We stratify the splits in two ways: (a) split the annotations from each novel (`random`), or (b) split the set of novels (`leave-x-out`), where the quotations from a novel can only be in one of the three splits. We use 5-fold cross-validation for the training experiments.
 
 ## Models
+- The **ModernBERT Speaker Attribution Model** can be trained using the `training/train_speaker.py` script with ModernBERT as the base model. This provides improved performance over the original BERT-based model. See [MODERNBERT_USAGE.md](MODERNBERT_USAGE.md) and `examples/train_with_modernbert.sh` for usage examples.
+
 - The BookNLP model (pretrained) can be run on PDNC using the `pdnc_run_pipeline.py` scripts. Outputs will be stored in `booknlpen/pdnc_output` (pre-populated in this repo). These outputs are used in a few other places subsequently, particularly training on PDNC.
 
 - The spacy coref model can be run using the `coref/run_spacy.py` script. Outputs will be stored in `coref/outputs/spacy`.

@@ -1,5 +1,8 @@
 import sys
+import os
+# Add both the hardcoded path (for original setup) and current directory (for general use)
 sys.path.append('/h/vkpriya/bookNLP/booknlp-en')
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # Add repository root
 
 from booknlpen.english.speaker_attribution import BERTSpeakerID
 import torch.nn as nn
