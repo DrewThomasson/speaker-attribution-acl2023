@@ -1,7 +1,7 @@
 import sys
 import re
 import math
-from transformers import BertTokenizer, BertModel 
+from transformers import AutoTokenizer, AutoModel 
 
 import torch.nn as nn
 import torch.nn.functional as F
@@ -17,19 +17,21 @@ class Tagger(nn.Module):
 		super(Tagger, self).__init__()
 
 		modelName=base_model
+		# Use ModernBERT by default if no model specified
+		if modelName is None:
+			modelName = "answerdotai/ModernBERT-base"
+		
 		modelName=re.sub("^entities_", "", modelName)
-		modelName=re.sub("-v\d.*$", "", modelName)
-		matcher=re.search(".*-(\d+)_H-(\d+)_A-.*", modelName)
-		bert_dim=0
-		modelSize=0
-		self.num_layers=0
-		if matcher is not None:
-			bert_dim=int(matcher.group(2))
-			self.num_layers=min(4, int(matcher.group(1)))
-
-			modelSize=self.num_layers*bert_dim
-
-		assert bert_dim != 0
+		modelName=re.sub(r"-v\d.*$", "", modelName)
+		
+		# ModernBERT model dimensions
+		if "large" in modelName.lower():
+			bert_dim = 1024
+		else:
+			bert_dim = 768  # ModernBERT-base default
+		
+		self.num_layers = 4  # Default number of layers to use
+		modelSize = self.num_layers * bert_dim
 		
 		self.tagset=tagset
 		self.tagset_flat=tagset_flat
@@ -55,8 +57,8 @@ class Tagger(nn.Module):
 
 		self.num_labels_flat=len(tagset_flat)
 
-		self.tokenizer = BertTokenizer.from_pretrained(modelName, do_lower_case=False, do_basic_tokenize=False)
-		self.bert = BertModel.from_pretrained(modelName)
+		self.tokenizer = AutoTokenizer.from_pretrained(modelName, do_lower_case=False, do_basic_tokenize=False)
+		self.bert = AutoModel.from_pretrained(modelName)
 
 		self.tokenizer.add_tokens(["[CAP]"], special_tokens=True)
 		self.bert.resize_token_embeddings(len(self.tokenizer))
@@ -95,7 +97,7 @@ class Tagger(nn.Module):
 		self.bert_params={}
 		self.everything_else_params={}
 
-	def forwardFlatSequence(self, input_ids, token_type_ids=None, attention_mask=None, transforms=None, labels=None):
+	def forwardFlatSequence(self, input_ids, attention_mask=None, transforms=None, labels=None):
 
 		batch_s, max_len=input_ids.shape
 
@@ -106,7 +108,7 @@ class Tagger(nn.Module):
 		if labels is not None:
 			labels = labels.to(self.device)
 
-		output = self.bert(input_ids, token_type_ids=None, attention_mask=attention_mask, output_hidden_states=True)
+		output = self.bert(input_ids, attention_mask=attention_mask, output_hidden_states=True)
 		hidden_states=output["hidden_states"]
 	
 		if self.num_layers == 4:
@@ -155,7 +157,7 @@ class Tagger(nn.Module):
 			labels[1] = labels[1].to(self.device)
 			labels[2] = labels[2].to(self.device)
 		
-		output = self.bert(input_ids, token_type_ids=None, attention_mask=attention_mask, output_hidden_states=True)
+		output = self.bert(input_ids, attention_mask=attention_mask, output_hidden_states=True)
 		hidden_states=output["hidden_states"]
 		if self.num_layers == 4:
 			all_layers = torch.cat((hidden_states[-1], hidden_states[-2], hidden_states[-3], hidden_states[-4]), 2)
@@ -201,7 +203,7 @@ class Tagger(nn.Module):
 			labels[1] = labels[1].to(self.device)
 			labels[2] = labels[2].to(self.device)
 		
-		output = self.bert(input_ids, token_type_ids=None, attention_mask=attention_mask, output_hidden_states=True)
+		output = self.bert(input_ids, attention_mask=attention_mask, output_hidden_states=True)
 		hidden_states=output["hidden_states"]
 		if self.num_layers == 4:
 			all_layers = torch.cat((hidden_states[-1], hidden_states[-2], hidden_states[-3], hidden_states[-4]), 2)
@@ -410,7 +412,7 @@ class Tagger(nn.Module):
 
 		ll=lens.to(self.device)
 
-		sequence_outputs, pooled_outputs, hidden_states = self.bert(input_ids, token_type_ids=None, attention_mask=attention_mask, output_hidden_states=True, return_dict=False)
+		sequence_outputs, pooled_outputs, hidden_states = self.bert(input_ids, attention_mask=attention_mask, output_hidden_states=True, return_dict=False)
 		if self.num_layers == 4:
 			all_layers = torch.cat((hidden_states[-1], hidden_states[-2], hidden_states[-3], hidden_states[-4]), 2)
 		elif self.num_layers == 2:
@@ -609,7 +611,7 @@ class Tagger(nn.Module):
 
 		ll=lens.to(self.device)
 
-		sequence_outputs, pooled_outputs, hidden_states = self.bert(input_ids, token_type_ids=None, attention_mask=attention_mask, output_hidden_states=True, return_dict=False)
+		sequence_outputs, pooled_outputs, hidden_states = self.bert(input_ids, attention_mask=attention_mask, output_hidden_states=True, return_dict=False)
 		if self.num_layers == 4:
 			all_layers = torch.cat((hidden_states[-1], hidden_states[-2], hidden_states[-3], hidden_states[-4]), 2)
 		elif self.num_layers == 2:
@@ -776,7 +778,7 @@ class Tagger(nn.Module):
 
 		ll=lens.to(self.device)
 
-		output = self.bert(input_ids, token_type_ids=None, attention_mask=attention_mask, output_hidden_states=True)
+		output = self.bert(input_ids, attention_mask=attention_mask, output_hidden_states=True)
 		hidden_states=output["hidden_states"]
 
 		if self.num_layers == 4:
@@ -1001,7 +1003,7 @@ class Tagger(nn.Module):
 
 			for b in range(len(dev_batched_data)):
 
-				logits = self.forwardFlatSequence(dev_batched_data[b], token_type_ids=None, attention_mask=dev_batched_mask[b], transforms=dev_batched_transforms[b])
+				logits = self.forwardFlatSequence(dev_batched_data[b], attention_mask=dev_batched_mask[b], transforms=dev_batched_transforms[b])
 
 				logits=logits.cpu()
 
@@ -1032,7 +1034,7 @@ class Tagger(nn.Module):
 				dataSize=batched_transforms[b].shape
 				batch_len=dataSize[0]
 				sequence_length=dataSize[1]
-				logits = self.forwardFlatSequence(batched_data[b], token_type_ids=None, attention_mask=batched_mask[b], transforms=batched_transforms[b])
+				logits = self.forwardFlatSequence(batched_data[b], attention_mask=batched_mask[b], transforms=batched_transforms[b])
 				logits=logits.view(-1, sequence_length, self.num_labels_flat)
 
 				logits=logits.cpu()

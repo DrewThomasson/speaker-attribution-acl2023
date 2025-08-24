@@ -1,5 +1,8 @@
 import sys
+import os
+# Add both the hardcoded path (for original setup) and current directory (for general use)
 sys.path.append('/h/vkpriya/bookNLP/booknlp-en')
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))  # Add repository root
 
 from booknlpen.english.speaker_attribution import BERTSpeakerID
 import torch.nn as nn
@@ -143,7 +146,7 @@ if __name__ == "__main__":
 	parser.add_argument('--trainData', help='Filename containing training data', required=False)
 	parser.add_argument('--devData', help='Filename containing dev data', required=False)
 	parser.add_argument('--testData', help='Filename containing test data', required=False)
-	parser.add_argument('--base_model', help='Base BERT model', required=False)
+	parser.add_argument('--base_model', help='Base ModernBERT model (default: answerdotai/ModernBERT-base)', required=False, default='answerdotai/ModernBERT-base')
 	parser.add_argument('--savePath', help='Folder to save outputs', required=False)
 
 	args = vars(parser.parse_args())
